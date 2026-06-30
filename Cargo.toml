@@ -1,0 +1,31 @@
+[package]
+name = "tektite"
+version = "0.1.0"
+edition = "2024"
+description = "Obsidian-style Markdown renderer for egui, powered by marki-parse"
+license = "MIT"
+repository = "https://github.com/42Pupusas/tektite"
+readme = "README.md"
+keywords = ["egui", "eframe", "markdown", "commonmark"]
+categories = ["gui", "text-processing"]
+
+[dependencies]
+egui = "0.34"
+marki-parse = "0.2"
+
+[dev-dependencies]
+eframe = "0.34"
+
+[[example]]
+name = "preview"
+path = "examples/preview.rs"
+
+[[example]]
+name = "gallery"
+path = "examples/gallery.rs"
+
+[lints.clippy]
+style = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
