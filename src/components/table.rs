@@ -78,7 +78,13 @@ fn column_widths(ui: &Ui, row_jobs: &[Vec<RawCell>], ncols: usize) -> (Vec<f32>,
 /// Horizontal padding inside each cell, in points.
 const CELL_PAD_X: f32 = 8.0;
 /// Vertical padding inside each cell, in points.
-const CELL_PAD_Y: f32 = 4.0;
+///
+/// Matches `CELL_PAD_X` (8.0) rather than sitting at half of it — the old
+/// 4.0 read as visibly cramped: with a ~1.25x line-height galley plus only
+/// 4pt above and below, rows were barely taller than the text itself and
+/// glyph descenders (g, y, p) crowded the grid border. 8.0 gives every row
+/// the same breathing room on both axes.
+const CELL_PAD_Y: f32 = 8.0;
 /// Grid line thickness, in points.
 const BORDER_W: f32 = 1.0;
 /// Minimum column content width when the table is squeezed, in points. Below
