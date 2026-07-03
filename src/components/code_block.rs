@@ -4,7 +4,7 @@
 //! An optional language label appears top-right in `muted_foreground`.
 //! The code text is selectable (users can highlight and copy substrings).
 
-use egui::{FontId, Margin, Response, Ui, Vec2, Widget};
+use egui::{FontId, Margin, Response, Ui, Widget};
 use marki_parse::{LineRange, MarkdownFile, PoolLine};
 
 use crate::tokens::Tokens;
@@ -74,7 +74,7 @@ impl Widget for CodeBlock<'_> {
             }
         };
 
-        let padding = Vec2::new(12.0, 10.0);
+        let margin = Margin::symmetric(12, 10);
         let font_id = FontId::monospace(mono_size);
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let radius = egui::CornerRadius::same(tokens.radius_md());
@@ -82,7 +82,7 @@ impl Widget for CodeBlock<'_> {
         egui::Frame::new()
             .fill(tokens.muted)
             .corner_radius(radius)
-            .inner_margin(Margin::symmetric(padding.x as i8, padding.y as i8))
+            .inner_margin(margin)
             .show(ui, |ui| {
                 // Language label: right-aligned row above the code.
                 if let Some(lang) = self.language {

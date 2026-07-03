@@ -69,8 +69,7 @@ impl Widget for Paragraph<'_> {
         // pointer against link character ranges.  Also make the text
         // selectable for copy/paste.
         let galley = ui.fonts_mut(|f| f.layout_job(job));
-        let (rect, response) =
-            ui.allocate_exact_size(galley.size(), Sense::click_and_drag());
+        let (rect, response) = ui.allocate_exact_size(galley.size(), Sense::click_and_drag());
 
         if ui.is_rect_visible(rect) {
             // Pointer-in-rect → find which link (if any) is under it.
