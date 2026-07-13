@@ -214,11 +214,23 @@ impl Widget for Table<'_> {
         // never grows taller than MAX_TABLE_H: past that it scrolls internally
         // on Y, and if columns overflowed it scrolls on X too — all without
         // pushing the rest of the document off-screen.
+        //
+        // `max_h` is the exact frame height we want: the true content height,
+        // capped at MAX_TABLE_H. We pin it on BOTH ends of the scroll frame —
+        // `max_height` caps the top, `min_scrolled_height` sets the floor.
+        // Without the floor, egui sizes the frame to whatever vertical space
+        // happens to be left in the parent Ui (`available_rect`), and when the
+        // table sits deep inside a vertically-scrolling transcript or file
+        // viewer that remaining space is near-zero — so egui clamps the frame
+        // down to its 64pt `min_scrolled_size` default and the table renders as
+        // an unreadable sliver. Pinning the floor to `max_h` keeps the frame at
+        // the table's real height regardless of the parent's leftover space.
         let max_h = MAX_TABLE_H.min(table_h);
         let salt = (self.rows.start, self.rows.len);
         egui::ScrollArea::both()
             .id_salt(salt)
             .max_height(max_h)
+            .min_scrolled_height(max_h)
             .auto_shrink([true, true])
             .show(ui, |ui| {
                 let (rect, response) =
