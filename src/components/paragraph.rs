@@ -78,7 +78,7 @@ impl Widget for Paragraph<'_> {
                 // pointer, then we check if that character index is inside any link.
                 let local = pos - rect.min;
                 let cursor = galley.cursor_from_pos(local);
-                let char_idx = cursor.index; // char-level index into the galley text
+                let char_idx = cursor.index.0; // char-level index into the galley text
 
                 links
                     .iter()

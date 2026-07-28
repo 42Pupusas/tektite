@@ -299,7 +299,7 @@ impl Table<'_> {
                     let local = p - pos;
                     let galley_rect = Rect::from_min_size(pos, cell.galley.size());
                     if galley_rect.contains(p) {
-                        let idx = cell.galley.cursor_from_pos(local).index;
+                        let idx = cell.galley.cursor_from_pos(local).index.0;
                         hovered_url = cell
                             .links
                             .iter()

@@ -394,7 +394,7 @@ impl eframe::App for App {
                     .inner_margin(Margin::symmetric(24, 10))
                     .stroke(Stroke::new(1.0, tk.border)),
             )
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("tektite").size(17.0).color(tk.heading));
                     ui.add_space(8.0);
@@ -423,7 +423,7 @@ impl eframe::App for App {
                     .inner_margin(Margin::symmetric(12, 16))
                     .stroke(Stroke::new(1.0, tk.border)),
             )
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.label(
                     RichText::new("Components")
                         .size(10.0)
@@ -451,7 +451,7 @@ impl eframe::App for App {
         // ── Main content ─────────────────────────────────────────────────────
         egui::CentralPanel::default()
             .frame(Frame::new().fill(tk.background))
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 egui::ScrollArea::vertical()
                     .id_salt("main_scroll")
                     .show(ui, |ui| {
