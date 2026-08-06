@@ -1,6 +1,6 @@
 [package]
 name = "tektite"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "Obsidian-style Markdown renderer for egui, powered by marki-parse"
 license = "MIT"
@@ -12,11 +12,11 @@ categories = ["gui", "text-processing"]
 [dependencies]
 # Markdown views exchange egui types with their host application. Keep this
 # release line aligned so widget values never cross incompatible egui versions.
-egui = "0.35"
+egui = "0.36"
 marki-parse = "0.2"
 
 [dev-dependencies]
-eframe = "0.35"
+eframe = "0.36"
 
 [[example]]
 name = "preview"
