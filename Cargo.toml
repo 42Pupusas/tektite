@@ -1,6 +1,6 @@
 [package]
 name = "tektite"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 description = "Obsidian-style Markdown renderer for egui, powered by marki-parse"
 license = "MIT"
