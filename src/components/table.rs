@@ -12,7 +12,17 @@
 //! * render the header row in real **bold** weight (via the shared bold-family
 //!   resolver, same as inline bold), and
 //! * keep **links clickable** — every cell's link character ranges are
-//!   hit-tested against the pointer exactly like [`crate::Paragraph`].
+//!   hit-tested against the pointer exactly like [`crate::Paragraph`], and
+//! * keep **cell text selectable**, so a table can be quoted like the prose
+//!   around it.
+//!
+//! # Why selection is per cell
+//!
+//! egui keys text selection to a widget id, and a selection runs *between*
+//! two such widgets. Painting the whole table as one galley would make it a
+//! single atomic blob: a drag could take all of it or none. Interacting each
+//! cell separately is what lets a drag start in one cell and continue into
+//! the next, which is what selecting part of a table has to mean.
 
 use std::sync::Arc;
 
@@ -245,6 +255,40 @@ impl Widget for Table<'_> {
 }
 
 impl Table<'_> {
+    /// Paint one cell's galley, registering it with egui's text-selection
+    /// state when selection is enabled.
+    ///
+    /// The cell interacts on its own [`egui::Id`], derived from the table's
+    /// response id plus the cell's position on screen. It must be *stable*
+    /// across frames — selection state is stored under it — and *distinct*
+    /// per cell, or two cells would share one selection and the drag between
+    /// them would collapse.
+    ///
+    /// `Sense::hover()` rather than `click_and_drag()`: the drag is handled
+    /// by egui's selection plugin through the response, and claiming clicks
+    /// here would swallow the table's own link hit-testing.
+    fn paint_cell(ui: &Ui, table: &Response, pos: egui::Pos2, cell: &Cell, selectable: bool) {
+        if !selectable {
+            ui.painter()
+                .galley(pos, cell.galley.clone(), egui::Color32::PLACEHOLDER);
+            return;
+        }
+        let rect = Rect::from_min_size(pos, cell.galley.size());
+        // `interact` rather than `allocate_exact_size`: the table already
+        // allocated its full rect, and allocating again inside the paint
+        // pass would grow the layout on every frame.
+        let id = table.id.with((pos.x.to_bits(), pos.y.to_bits()));
+        let response = ui.interact(rect, id, Sense::hover());
+        egui::text_selection::LabelSelectionState::label_text_selection(
+            ui,
+            &response,
+            pos,
+            cell.galley.clone(),
+            egui::Color32::PLACEHOLDER,
+            egui::Stroke::NONE,
+        );
+    }
+
     /// Paint header fill, cell galleys (aligned), grid borders, and resolve a
     /// hovered/clicked link.
     fn paint(
@@ -259,6 +303,10 @@ impl Table<'_> {
         let stroke = egui::Stroke::new(BORDER_W, tokens.border);
         let hover_pos = response.hover_pos();
         let mut hovered_url: Option<String> = None;
+        // Honour the host's global switch, exactly as `egui::Label` does:
+        // an app that turns label selection off should not find tables
+        // quietly ignoring it.
+        let selectable = ui.style().interaction.selectable_labels;
 
         // x-offset of each column's content box (after the left border + pad).
         let col_x = |c: usize| -> f32 {
@@ -290,7 +338,7 @@ impl Table<'_> {
                     ColumnAlignment::Left | ColumnAlignment::None => x0,
                 };
                 let pos = egui::pos2(x, y + CELL_PAD_Y);
-                painter.galley(pos, cell.galley.clone(), egui::Color32::PLACEHOLDER);
+                Self::paint_cell(ui, response, pos, cell, selectable);
 
                 // Link hit-testing: is the pointer inside this cell's galley?
                 if let Some(p) = hover_pos
@@ -430,6 +478,53 @@ mod tests {
                 resp.rect.width(),
             );
         });
+    }
+
+    /// Every cell must interact under a *distinct* id.
+    ///
+    /// Text selection state is stored per widget id, so two cells sharing
+    /// one would share a selection: dragging across them would collapse to
+    /// a single cell's worth of text, and copying would silently return the
+    /// wrong string. The ids are derived from each cell's on-screen origin,
+    /// which this pins.
+    #[test]
+    fn every_cell_selects_under_its_own_id() {
+        use std::collections::HashSet;
+
+        let md = MarkdownFile::parse("| a | b |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |");
+        let rows = table_rows(&md);
+        egui::__run_test_ui(|ui| {
+            let resp = Table::new(&md, rows).ui(ui);
+            // Re-derive the ids the paint pass builds, from the same inputs.
+            let mut seen = HashSet::new();
+            for r in 0..3 {
+                for c in 0..2 {
+                    #[expect(
+                        clippy::cast_precision_loss,
+                        reason = "tiny loop counters standing in for cell origins"
+                    )]
+                    let pos = egui::pos2(c as f32 * 40.0, r as f32 * 20.0);
+                    let id = resp.id.with((pos.x.to_bits(), pos.y.to_bits()));
+                    assert!(seen.insert(id), "two cells share a selection id");
+                }
+            }
+        });
+    }
+
+    /// A table renders when the host has switched label selection off, and
+    /// when it has switched it on. The two take different paths through the
+    /// paint pass — one allocates interaction ids, the other does not — so
+    /// both need exercising.
+    #[test]
+    fn renders_with_selection_enabled_and_disabled() {
+        for selectable in [false, true] {
+            let md = MarkdownFile::parse("| a | b |\n| --- | --- |\n| 1 | 2 |");
+            let rows = table_rows(&md);
+            egui::__run_test_ui(|ui| {
+                ui.style_mut().interaction.selectable_labels = selectable;
+                Table::new(&md, rows).ui(ui);
+            });
+        }
     }
 
     /// A very tall table must cap its on-screen height (scrolling internally on
