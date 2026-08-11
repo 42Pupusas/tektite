@@ -162,6 +162,29 @@ mod tests {
         );
     }
 
+    /// A block is one section among siblings, so its height is its own.
+    ///
+    /// Text after a fenced block must sit directly under it. If the
+    /// block took the height on offer it would consume the rest of the
+    /// document's column and push every later section off-screen — the
+    /// reason "fill the space" cannot be right for a widget in a
+    /// top-down flow with siblings.
+    #[test]
+    fn a_block_does_not_push_the_rest_of_the_document_away() {
+        let md = MarkdownFile::parse("```rust\nlet x = 1;\n```\n\nAfter the block.\n");
+        let mut consumed = 0.0;
+        egui::__run_test_ui(|ui| {
+            ui.set_max_height(4000.0);
+            let before = ui.cursor().top();
+            crate::render_document(ui, &md);
+            consumed = ui.cursor().top() - before;
+        });
+        assert!(
+            consumed < 200.0,
+            "a one-line block plus a line of prose consumed {consumed}pt",
+        );
+    }
+
     /// The language label is a one-line row, not a column that grows.
     ///
     /// Right-alignment needs a bounded rect to align within; given an
