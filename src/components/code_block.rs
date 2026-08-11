@@ -87,13 +87,25 @@ impl Widget for CodeBlock<'_> {
                 // Language label: right-aligned row above the code.
                 if let Some(lang) = self.language {
                     let lbl_font = FontId::monospace(body_size * 0.68);
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.add(egui::Label::new(
-                            egui::RichText::new(lang)
-                                .font(lbl_font)
-                                .color(tokens.muted_foreground),
-                        ));
-                    });
+                    // Right-alignment needs a bounded rect to align
+                    // *within*: an unbounded one makes the row claim the
+                    // whole height on offer, which in a tall host leaves
+                    // the code stranded under a screenful of blank fill.
+                    let row = egui::vec2(
+                        ui.available_width(),
+                        ui.text_style_height(&egui::TextStyle::Body),
+                    );
+                    ui.allocate_ui_with_layout(
+                        row,
+                        egui::Layout::right_to_left(egui::Align::Center),
+                        |ui| {
+                            ui.add(egui::Label::new(
+                                egui::RichText::new(lang)
+                                    .font(lbl_font)
+                                    .color(tokens.muted_foreground),
+                            ));
+                        },
+                    );
                 }
 
                 // Selectable code text — users can highlight and copy
@@ -109,5 +121,60 @@ impl Widget for CodeBlock<'_> {
                 );
             })
             .response
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use egui::Widget as _;
+    use marki_parse::MarkdownFile;
+
+    use super::CodeBlock;
+
+    /// Height of a two-line block rendered in a `ui` offering `avail`
+    /// vertical points.
+    fn height(language: Option<&str>, avail: f32) -> f32 {
+        let md = MarkdownFile::parse("");
+        let mut measured = 0.0;
+        egui::__run_test_ui(|ui| {
+            ui.set_max_height(avail);
+            measured = CodeBlock::new(&md, language, "one\ntwo\n")
+                .ui(ui)
+                .rect
+                .height();
+        });
+        measured
+    }
+
+    /// A code block is sized by its code, not by the room it is given.
+    ///
+    /// The viewer hands blocks a tall `Ui` (a scroll area's full height)
+    /// while a chat bubble hands them a short one. A block that grows
+    /// with the offer renders compactly in a bubble and stretched full
+    /// of blank space in the viewer — the same document, two shapes.
+    #[test]
+    fn height_does_not_follow_the_available_space() {
+        let short = height(Some("rust"), 200.0);
+        let tall = height(Some("rust"), 4000.0);
+        assert!(
+            (short - tall).abs() < 1.0,
+            "block stretched from {short} to {tall} on a taller ui",
+        );
+    }
+
+    /// The language label is a one-line row, not a column that grows.
+    ///
+    /// Right-alignment needs a bounded rect to align within; given an
+    /// unbounded one the row claims every point on offer, which is what
+    /// stretched the block.
+    #[test]
+    fn a_labelled_block_is_no_taller_than_an_unlabelled_one() {
+        let bare = height(None, 4000.0);
+        let labelled = height(Some("rust"), 4000.0);
+        assert!(
+            labelled - bare < 40.0,
+            "language label added {}pt",
+            labelled - bare,
+        );
     }
 }
